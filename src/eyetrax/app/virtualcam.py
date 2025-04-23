@@ -2,11 +2,12 @@ import argparse
 import time
 import cv2
 import numpy as np
-import tkinter as tk
 import pyvirtualcam
 from scipy.stats import gaussian_kde
-from gaze_estimator import GazeEstimator
-from calibration import (
+
+from eyetrax.utils.screen import get_screen_size
+from eyetrax.gaze import GazeEstimator
+from eyetrax.calibration import (
     run_9_point_calibration,
     run_5_point_calibration,
     run_lissajous_calibration,
@@ -14,10 +15,8 @@ from calibration import (
 )
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Virtual Camera Gaze Overlay (v4l2loopback)"
-    )
+def run_virtualcam():
+    parser = argparse.ArgumentParser(description="Virtual Camera Gaze Overlay")
     parser.add_argument("--filter", choices=["kalman", "kde", "none"], default="none")
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument(
@@ -46,16 +45,13 @@ def main():
         kalman.transitionMatrix = np.array(
             [[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32
         )
-        kalman.processNoiseCov = np.eye(4, dtype=np.float32) * 10
-        kalman.measurementNoiseCov = np.eye(2, dtype=np.float32) * 1
+        kalman.processNoiseCov = np.eye(4, dtype=np.float32) * 50
+        kalman.measurementNoiseCov = np.eye(2, dtype=np.float32) * 0.2
         kalman.statePre = np.zeros((4, 1), np.float32)
         kalman.statePost = np.zeros((4, 1), np.float32)
         fine_tune_kalman_filter(gaze_estimator, kalman, camera_index=camera_index)
 
-    root = tk.Tk()
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    root.destroy()
+    screen_width, screen_height = get_screen_size()
 
     cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():
@@ -71,14 +67,14 @@ def main():
 
     gaze_history = []
     time_window = 0.5
-    prev_time = time.time()
-    mask_prev = None
-    mask_next = None
+    mask_prev = mask_next = None
     blend_alpha = 1.0
     contours_cache = []
-    last_kde_x_pred = None
-    last_kde_y_pred = None
+    last_kde_x_pred = last_kde_y_pred = None
     frame_count = 0
+
+    BORDER = 2
+    MARGIN = 20
 
     with pyvirtualcam.Camera(
         width=screen_width,
@@ -94,49 +90,48 @@ def main():
                 continue
 
             features, blink_detected = gaze_estimator.extract_features(frame)
-            x_pred, y_pred = None, None
+            x_pred = y_pred = None
 
             if features is not None and not blink_detected:
                 gaze_point = gaze_estimator.predict(np.array([features]))[0]
-                x, y = int(gaze_point[0]), int(gaze_point[1])
+                x, y = map(int, gaze_point)
 
                 if kalman and filter_method == "kalman":
                     prediction = kalman.predict()
-                    x_pred = int(prediction[0][0])
-                    y_pred = int(prediction[1][0])
+                    x_pred, y_pred = map(int, prediction[:2, 0])
                     x_pred = max(0, min(x_pred, screen_width - 1))
                     y_pred = max(0, min(y_pred, screen_height - 1))
                     measurement = np.array([[np.float32(x)], [np.float32(y)]])
-                    if np.count_nonzero(kalman.statePre) == 0:
+                    if not np.any(kalman.statePre):
                         kalman.statePre[:2] = measurement
                         kalman.statePost[:2] = measurement
                     kalman.correct(measurement)
 
                 elif filter_method == "kde":
-                    current_time = time.time()
-                    gaze_history.append((current_time, x, y))
+                    now = time.time()
+                    gaze_history.append((now, x, y))
                     gaze_history = [
                         (t, gx, gy)
                         for (t, gx, gy) in gaze_history
-                        if current_time - t <= time_window
+                        if now - t <= time_window
                     ]
                     if len(gaze_history) > 1 and frame_count % 5 == 0:
-                        arr = np.array([[gx, gy] for (_, gx, gy) in gaze_history])
+                        arr = np.array([(gx, gy) for (_, gx, gy) in gaze_history])
                         try:
                             kde = gaussian_kde(arr.T)
                             xi, yi = np.mgrid[0:screen_width:200j, 0:screen_height:120j]
-                            coords = np.vstack([xi.ravel(), yi.ravel()])
-                            zi = kde(coords).reshape(xi.shape).T
-                            zi_flat = zi.flatten()
-                            sort_idx = np.argsort(zi_flat)[::-1]
-                            zi_sorted = zi_flat[sort_idx]
-                            cumsum = np.cumsum(zi_sorted)
-                            cumsum /= cumsum[-1]
-                            idx = np.searchsorted(cumsum, confidence_level)
-                            if idx >= len(zi_sorted):
-                                idx = len(zi_sorted) - 1
-                            threshold = zi_sorted[idx]
-                            mask_new = np.where(zi >= threshold, 1, 0).astype(np.uint8)
+                            zi = (
+                                kde(np.vstack([xi.ravel(), yi.ravel()]))
+                                .reshape(xi.shape)
+                                .T
+                            )
+                            flat = zi.ravel()
+                            idx = np.argsort(flat)[::-1]
+                            cdf = np.cumsum(flat[idx]) / flat.sum()
+                            threshold = flat[
+                                idx[np.searchsorted(cdf, confidence_level)]
+                            ]
+                            mask_new = (zi >= threshold).astype(np.uint8)
                             mask_new = cv2.resize(
                                 mask_new, (screen_width, screen_height)
                             )
@@ -169,7 +164,7 @@ def main():
                 and mask_next is not None
             ):
                 blend_alpha = min(blend_alpha + 0.2, 1.0)
-                blended_mask = cv2.addWeighted(
+                blended = cv2.addWeighted(
                     mask_prev.astype(np.float32),
                     1.0 - blend_alpha,
                     mask_next.astype(np.float32),
@@ -177,10 +172,10 @@ def main():
                     0,
                 ).astype(np.uint8)
                 kernel2 = np.ones((5, 5), np.uint8)
-                blended_mask = cv2.morphologyEx(blended_mask, cv2.MORPH_OPEN, kernel2)
-                blended_mask = cv2.morphologyEx(blended_mask, cv2.MORPH_CLOSE, kernel2)
+                blended = cv2.morphologyEx(blended, cv2.MORPH_OPEN, kernel2)
+                blended = cv2.morphologyEx(blended, cv2.MORPH_CLOSE, kernel2)
                 contours, _ = cv2.findContours(
-                    blended_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS
+                    blended, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS
                 )
                 contours_cache = contours
                 if x_pred is not None and y_pred is not None:
@@ -192,6 +187,19 @@ def main():
             if filter_method != "kde" and x_pred is not None and y_pred is not None:
                 cv2.circle(output, (x_pred, y_pred), 10, (0, 0, 255), -1)
 
+            small = cv2.resize(frame, (cam_width, cam_height))
+            thumb = cv2.copyMakeBorder(
+                small,
+                BORDER,
+                BORDER,
+                BORDER,
+                BORDER,
+                cv2.BORDER_CONSTANT,
+                value=(255, 255, 255),
+            )
+            h, w = thumb.shape[:2]
+            output[-h - MARGIN : -MARGIN, -w - MARGIN : -MARGIN] = thumb
+
             cam.send(output)
             cam.sleep_until_next_frame()
             frame_count += 1
@@ -201,4 +209,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run_virtualcam()

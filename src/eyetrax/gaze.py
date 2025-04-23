@@ -63,15 +63,15 @@ class GazeEstimator:
         ]
 
         mutual_indices = [
-            4,  # Nose
+            4,   # Nose
             10,  # Very top
-            151,  # Forehead
-            9,  # Between brow
-            152,  # Chin
-            234,  # Very left
-            454,  # Very right
+            151, # Forehead
+            9,   # Between brow
+            152, # Chin
+            234, # Very left
+            454, # Very right
             58,  # Left jaw
-            288,  # Right jaw
+            288, # Right jaw
         ]
         # fmt: on
 
@@ -139,7 +139,6 @@ class GazeEstimator:
         Trains gaze prediction model
         """
         self.variable_scaling = variable_scaling
-
         X_scaled = self.scaler.fit_transform(X)
         if self.variable_scaling is not None:
             X_scaled *= self.variable_scaling
