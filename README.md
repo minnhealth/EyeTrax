@@ -1,118 +1,96 @@
-# EyePy
+# EyeTrax
 
-![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)
-![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)
+[![PyPI version](https://img.shields.io/pypi/v/eyetrax.svg)](https://pypi.org/project/eyetrax/)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![GitHub stars](https://img.shields.io/github/stars/ck-zhang/EyePy.svg?style=social)
+![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)
+[![GitHub stars](https://img.shields.io/github/stars/ck-zhang/EyeTrax.svg?style=social)](https://github.com/ck-zhang/EyeTrax)
 
 ![Demo](https://github.com/user-attachments/assets/70819837-c689-4516-8b95-0952500014ff)
 
-EyePy is a Python library that provides **webcam-based eye tracking**.
-Extract facial features, train eye tracking model and predict gaze with super easy to use interface.
+EyeTrax is a Python library that provides **webcam-based eye tracking**.
+Extract facial features, train a model and predict gaze with an easy‑to‑use interface.
 
-The repo also includes a virtual camera script allowing integration with streaming software like OBS.
+## Features
+
+- Real‑time gaze estimation
+- Multiple calibration workflows
+- Optional filtering (Kalman / KDE)
+- Virtual-camera overlay that integrates with streaming software (e.g., OBS) via the bundled **`eyetrax-virtualcam`** CLI
 
 ## Installation
 
-Clone this project:
-```shell
-git clone https://github.com/ck-zhang/EyePy
+### From [PyPI](https://pypi.org/project/eyetrax/)
+
+```bash
+pip install eyetrax
 ```
 
-### Using Pip
-```shell
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
-pip install -r requirements.txt
-```
+### From source
 
-### Using uv
-```shell
-# Install uv https://github.com/astral-sh/uv/?tab=readme-ov-file#installation
-pip install uv
-uv sync
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```bash
+git clone https://github.com/ck-zhang/eyetrax && cd eyetrax
+
+# editable install — pick one
+python -m pip install -e .
+pip install uv && uv sync
 ```
 
 ## Demo
 
-To run the gaze estimation demo:
+The **EyeTrax** package provides two command‑line entry points
+
+| Command | Purpose |
+|---------|---------|
+| `eyetrax-demo` | Run an on‑screen gaze overlay demo |
+| `eyetrax-virtualcam` | Stream the overlay to a virtual webcam |
+
+Options
+
+| Flag | Values | Default | Description |
+|------|--------|---------|-------------|
+| `--filter` | `kalman`, `kde`, `none` | `none` | Smoothing filter |
+| `--camera` | *int* | `0` | Physical webcam index |
+| `--calibration` | `9p`, `5p`, `lissajous` | `9p` | Calibration routine |
+| `--background` *(demo only)* | *path* | — | Background image |
+| `--confidence` *(KDE only)* | *0–1* | `0.5` | Contour probability |
+
+## Quick Examples
 
 ```bash
-python demo.py [OPTIONS]
+eyetrax-demo --filter kalman
 ```
-
-### Options
-
-| Option            | Description                                      | Default             |
-|-------------------|--------------------------------------------------|---------------------|
-| `--filter`        | Filter method (`kalman`, `kde`, `none`)          | `none`              |
-| `--camera`        | Index of the camera to use                       | `0`                 |
-| `--calibration`   | Calibration method (`9p`, `5p`, `lissajous`)     | `9p`                |
-| `--background`    | Path to background image                         | None                |
-| `--confidence`    | Confidence interval for KDE contours (0 to 1)    | `0.5`               |
-
-## Virtual Camera Script (only tested on linux)
 
 ```bash
-python virtual_cam.py [OPTIONS]
+eyetrax-virtualcam --filter kde --calibration 5p
 ```
-
-### Virtual Camera Options
-
-| Option            | Description                                      | Default             |
-|-------------------|--------------------------------------------------|---------------------|
-| `--filter`        | Filter method (`kalman`, `kde`, `none`)          | `none`              |
-| `--camera`        | Index of the camera to use                       | `0`                 |
-| `--calibration`   | Calibration method (`9p`, `5p`, `lissajous`)     | `9p`                |
-| `--confidence`    | Confidence interval for KDE contours (0 to 1)    | `0.5`               |
 
 ### Virtual camera demo
 
 https://github.com/user-attachments/assets/7337f28c-6ce6-4252-981a-db77db5509f6
 
-## Usage as library
+## Library Usage
 
-### Initialization
 ```python
-from EyePy import GazeEstimator
-gaze_estimator = GazeEstimator()
-```
-
-### Feature Extraction
-```python
+from eyetrax import GazeEstimator, run_9_point_calibration
 import cv2
-image = cv2.imread('image.jpg')
-features, blink_detected = gaze_estimator.extract_features(image)
 
-if features is None:
-    print("No face detected.")
-elif blink_detected:
-    print("Blink detected!")
-else:
-    print("Extracted features:", features)
+# Create estimator and calibrate
+estimator = GazeEstimator()
+run_9_point_calibration(estimator)
+
+cap = cv2.VideoCapture(0)
+
+while True:
+    # Extract features from frame
+    ret, frame = cap.read()
+    features, blink = estimator.extract_features(frame)
+
+    # Predict screen coordinates
+    if features is not None and not blink:
+        x, y = estimator.predict([features])[0]
+        print(f"Gaze: ({x:.0f}, {y:.0f})")
 ```
 
-### Training the Model
-```python
-X = [[...], [...], ...]  # Each element is a feature vector
-y = [[x1, y1], [x2, y2], ...]  # Corresponding gaze coordinates
-gaze_estimator.train(X, y)
-```
+## More
 
-### Predicting Gaze Location
-```python
-predicted_gaze = gaze_estimator.predict([features])
-print("Predicted gaze coordinates:", predicted_gaze[0])
-```
-
-## Future Work
-
-### TODO
-
-- [x] Virtual camera script ~~Integrate with OBS~~
-- [ ] Integrate with opentrack
-
-Any suggestions for features and improvements are welcome.
-
-If you enjoyed using EyePy, consider giving it a star.
+If you find EyeTrax useful, consider starring the repo or contributing. If you use it in your research, please cite it. The project is available under the MIT license.
