@@ -38,7 +38,11 @@ eyetrax-virtualcam = "eyetrax.app.virtualcam:run_virtualcam"
 packages = ["src/eyetrax"]
 
 [tool.hatch.build]
-include = ["LICENSE"]
+include = [
+  "src/eyetrax/**",
+  "LICENSE",
+  "README.md"
+]
 
 [tool.hatch.version]
 path = "src/eyetrax/_version.py"
