@@ -13,6 +13,7 @@ from eyetrax.calibration import (
     run_lissajous_calibration,
     fine_tune_kalman_filter,
 )
+from eyetrax.filters import make_kalman
 
 
 def run_demo():
@@ -44,15 +45,7 @@ def run_demo():
         run_lissajous_calibration(gaze_estimator, camera_index=camera_index)
 
     if filter_method == "kalman":
-        kalman = cv2.KalmanFilter(4, 2)
-        kalman.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
-        kalman.transitionMatrix = np.array(
-            [[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32
-        )
-        kalman.processNoiseCov = np.eye(4, dtype=np.float32) * 50
-        kalman.measurementNoiseCov = np.eye(2, dtype=np.float32) * 0.2
-        kalman.statePre = np.zeros((4, 1), np.float32)
-        kalman.statePost = np.zeros((4, 1), np.float32)
+        kalman = make_kalman()
         fine_tune_kalman_filter(gaze_estimator, kalman, camera_index=camera_index)
     else:
         kalman = None
