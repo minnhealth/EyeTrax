@@ -15,6 +15,7 @@ Extract facial features, train a model and predict gaze with an easy‑to‑use 
 - Real‑time gaze estimation
 - Multiple calibration workflows
 - Optional filtering (Kalman / KDE)
+- Model persistence – save / load a trained `GazeEstimator`
 - Virtual-camera overlay that integrates with streaming software (e.g., OBS) via the bundled **`eyetrax-virtualcam`** CLI
 
 ## Installation
@@ -77,6 +78,13 @@ import cv2
 # Create estimator and calibrate
 estimator = GazeEstimator()
 run_9_point_calibration(estimator)
+
+# Save model
+estimator.save_model("gaze_model.pkl")
+
+# Load model
+estimator = GazeEstimator()
+estimator.load_model("gaze_model.pkl")
 
 cap = cv2.VideoCapture(0)
 

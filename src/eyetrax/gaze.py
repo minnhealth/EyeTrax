@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import cv2
 import mediapipe as mp
 import numpy as np
+import pickle
+from pathlib import Path
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
@@ -13,9 +17,9 @@ class GazeEstimator:
             refine_landmarks=True,
             min_detection_confidence=0.5,
         )
-        self.model = None
+        self.model: Ridge | None = None
         self.scaler = StandardScaler()
-        self.variable_scaling = None
+        self.variable_scaling: np.ndarray | None = None
 
     def extract_features(self, image):
         """
@@ -134,7 +138,39 @@ class GazeEstimator:
 
         return features, blink_detected
 
-    def train(self, X, y, alpha=1.0, variable_scaling=None):
+    def save_model(self, path: str | Path):
+        """
+        Pickle model, scaler, and variable_scaling
+        """
+        if self.model is None:
+            raise RuntimeError("Model is not trained – nothing to save.")
+
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+
+        with p.open("wb") as fh:
+            pickle.dump(
+                dict(
+                    model=self.model,
+                    scaler=self.scaler,
+                    variable_scaling=self.variable_scaling,
+                ),
+                fh,
+            )
+
+    def load_model(self, path: str | Path):
+        p = Path(path)
+        if not p.is_file():
+            raise FileNotFoundError(p)
+
+        with p.open("rb") as fh:
+            payload = pickle.load(fh)
+
+        self.model = payload["model"]
+        self.scaler = payload["scaler"]
+        self.variable_scaling = payload["variable_scaling"]
+
+    def train(self, X, y, alpha: float = 1.0, variable_scaling=None):
         """
         Trains gaze prediction model
         """
