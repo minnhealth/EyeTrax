@@ -5,12 +5,18 @@ import mediapipe as mp
 import numpy as np
 import pickle
 from pathlib import Path
+from collections import deque
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
 
 class GazeEstimator:
-    def __init__(self):
+    def __init__(
+        self,
+        ear_history_len: int = 50,
+        blink_threshold_ratio: float = 0.8,
+        min_history: int = 15,
+    ):
         self.face_mesh = mp.solutions.face_mesh.FaceMesh(
             static_image_mode=False,
             max_num_faces=1,
@@ -21,6 +27,10 @@ class GazeEstimator:
         self.scaler = StandardScaler()
         self.variable_scaling: np.ndarray | None = None
 
+        self._ear_history = deque(maxlen=ear_history_len)
+        self._blink_ratio = blink_threshold_ratio
+        self._min_history = min_history
+
     def extract_features(self, image):
         """
         Takes in image and returns landmarks around the eye region
@@ -30,7 +40,7 @@ class GazeEstimator:
         results = self.face_mesh.process(image_rgb)
 
         if not results.multi_face_landmarks:
-            return None, None
+            return None, False
 
         face_landmarks = results.multi_face_landmarks[0]
         landmarks = face_landmarks.landmark
@@ -134,7 +144,13 @@ class GazeEstimator:
         right_EAR = right_eye_height / (right_eye_width + 1e-9)
 
         EAR = (left_EAR + right_EAR) / 2
-        blink_detected = EAR < 0.2
+
+        self._ear_history.append(EAR)
+        if len(self._ear_history) >= self._min_history:
+            thr = float(np.mean(self._ear_history)) * self._blink_ratio
+        else:
+            thr = 0.2
+        blink_detected = EAR < thr
 
         return features, blink_detected
 
