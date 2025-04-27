@@ -51,8 +51,6 @@ def run_virtualcam():
         print("Error: cannot open camera.")
         return
 
-    cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
-    cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
     cam_fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
 
     green_bg = np.zeros((screen_height, screen_width, 3), dtype=np.uint8)
@@ -65,9 +63,6 @@ def run_virtualcam():
     contours_cache = []
     last_kde_x_pred = last_kde_y_pred = None
     frame_count = 0
-
-    BORDER = 2
-    MARGIN = 20
 
     with pyvirtualcam.Camera(
         width=screen_width,
@@ -179,19 +174,6 @@ def run_virtualcam():
 
             if filter_method != "kde" and x_pred is not None and y_pred is not None:
                 cv2.circle(output, (x_pred, y_pred), 10, (0, 0, 255), -1)
-
-            small = cv2.resize(frame, (cam_width, cam_height))
-            thumb = cv2.copyMakeBorder(
-                small,
-                BORDER,
-                BORDER,
-                BORDER,
-                BORDER,
-                cv2.BORDER_CONSTANT,
-                value=(255, 255, 255),
-            )
-            h, w = thumb.shape[:2]
-            output[-h - MARGIN : -MARGIN, -w - MARGIN : -MARGIN] = thumb
 
             cam.send(output)
             cam.sleep_until_next_frame()
