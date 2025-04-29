@@ -1,6 +1,4 @@
-from importlib import metadata as _md
-
-__version__: str = _md.version(__name__)
+from ._version import __version__
 
 _lazy_map = {
     "GazeEstimator": ("eyetrax.gaze", "GazeEstimator"),
