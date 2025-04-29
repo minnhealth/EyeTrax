@@ -7,6 +7,11 @@ from collections import deque
 from pathlib import Path
 
 from eyetrax.models import create_model, BaseModel
+from eyetrax.constants import (
+    LEFT_EYE_INDICES,
+    RIGHT_EYE_INDICES,
+    MUTUAL_INDICES,
+)
 
 
 class GazeEstimator:
@@ -44,50 +49,6 @@ class GazeEstimator:
         face_landmarks = results.multi_face_landmarks[0]
         landmarks = face_landmarks.landmark
 
-        # fmt: off
-        left_eye_indices = [
-            107, 66, 105, 63, 70,
-            55, 65, 52, 53, 46,
-            468, 469, 470, 471, 472,
-            133, 33,
-            173, 157, 158, 159, 160, 161, 246,
-            155, 154, 153, 145, 144, 163, 7,
-            243, 190, 56, 28, 27, 29, 30, 247,
-            130, 25, 110, 24, 23, 22, 26, 112,
-            244, 189, 221, 222, 223, 224, 225, 113,
-            226, 31, 228, 229, 230, 231, 232, 233,
-            193, 245, 128, 121, 120, 119, 118, 117,
-            111, 35, 124, 143, 156,
-        ]
-
-        right_eye_indices = [
-            336, 296, 334, 293, 300,
-            285, 295, 282, 283, 276,
-            473, 476, 475, 474, 477,
-            362, 263,
-            398, 384, 385, 386, 387, 388, 466,
-            382, 381, 380, 374, 373, 390, 249,
-            463, 414, 286, 258, 257, 259, 260, 467,
-            359, 255, 339, 254, 253, 252, 256, 341,
-            464, 413, 441, 442, 443, 444, 445, 342,
-            446, 261, 448, 449, 450, 451, 452, 453,
-            417, 465, 357, 350, 349, 348, 347, 346,
-            340, 265, 353, 372, 383,
-        ]
-
-        mutual_indices = [
-            4,   # Nose
-            10,  # Very top
-            151, # Forehead
-            9,   # Between brow
-            152, # Chin
-            234, # Very left
-            454, # Very right
-            58,  # Left jaw
-            288, # Right jaw
-        ]
-        # fmt: on
-
         all_points = np.array(
             [(lm.x, lm.y, lm.z) for lm in landmarks], dtype=np.float32
         )
@@ -114,7 +75,7 @@ class GazeEstimator:
         if inter_eye_dist > 1e-7:
             rotated_points /= inter_eye_dist
 
-        subset_indices = left_eye_indices + right_eye_indices + mutual_indices
+        subset_indices = LEFT_EYE_INDICES + RIGHT_EYE_INDICES + MUTUAL_INDICES
         eye_landmarks = rotated_points[subset_indices]
         features = eye_landmarks.flatten()
 
