@@ -3,16 +3,17 @@ from __future__ import annotations
 import cv2
 import mediapipe as mp
 import numpy as np
-import pickle
-from pathlib import Path
 from collections import deque
-from sklearn.linear_model import Ridge
-from sklearn.preprocessing import StandardScaler
+from pathlib import Path
+
+from eyetrax.models import create_model, BaseModel
 
 
 class GazeEstimator:
     def __init__(
         self,
+        model_name: str = "ridge",
+        model_kwargs: dict | None = None,
         ear_history_len: int = 50,
         blink_threshold_ratio: float = 0.8,
         min_history: int = 15,
@@ -23,9 +24,7 @@ class GazeEstimator:
             refine_landmarks=True,
             min_detection_confidence=0.5,
         )
-        self.model: Ridge | None = None
-        self.scaler = StandardScaler()
-        self.variable_scaling: np.ndarray | None = None
+        self.model: BaseModel = create_model(model_name, **(model_kwargs or {}))
 
         self._ear_history = deque(maxlen=ear_history_len)
         self._blink_ratio = blink_threshold_ratio
@@ -156,57 +155,21 @@ class GazeEstimator:
 
     def save_model(self, path: str | Path):
         """
-        Pickle model, scaler, and variable_scaling
+        Pickle model
         """
-        if self.model is None:
-            raise RuntimeError("Model is not trained – nothing to save.")
-
-        p = Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-
-        with p.open("wb") as fh:
-            pickle.dump(
-                dict(
-                    model=self.model,
-                    scaler=self.scaler,
-                    variable_scaling=self.variable_scaling,
-                ),
-                fh,
-            )
+        self.model.save(path)
 
     def load_model(self, path: str | Path):
-        p = Path(path)
-        if not p.is_file():
-            raise FileNotFoundError(p)
+        self.model = BaseModel.load(path)
 
-        with p.open("rb") as fh:
-            payload = pickle.load(fh)
-
-        self.model = payload["model"]
-        self.scaler = payload["scaler"]
-        self.variable_scaling = payload["variable_scaling"]
-
-    def train(self, X, y, alpha: float = 1.0, variable_scaling=None):
+    def train(self, X, y, variable_scaling=None):
         """
         Trains gaze prediction model
         """
-        self.variable_scaling = variable_scaling
-        X_scaled = self.scaler.fit_transform(X)
-        if self.variable_scaling is not None:
-            X_scaled *= self.variable_scaling
-
-        self.model = Ridge(alpha=alpha)
-        self.model.fit(X_scaled, y)
+        self.model.train(X, y, variable_scaling)
 
     def predict(self, X):
         """
         Predicts gaze location
         """
-        if self.model is None:
-            raise Exception("Model is not trained yet.")
-
-        X_scaled = self.scaler.transform(X)
-        if self.variable_scaling is not None:
-            X_scaled *= self.variable_scaling
-
-        return self.model.predict(X_scaled)
+        return self.model.predict(X)

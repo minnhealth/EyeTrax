@@ -27,6 +27,7 @@ def run_demo():
     )
     parser.add_argument("--background", type=str, default=None)
     parser.add_argument("--confidence", type=float, default=0.5, help="0 < value < 1")
+    parser.add_argument("--model", default="ridge", help="Registered model to use")
     args = parser.parse_args()
 
     filter_method = args.filter
@@ -35,7 +36,7 @@ def run_demo():
     background_path = args.background
     confidence_level = args.confidence
 
-    gaze_estimator = GazeEstimator()
+    gaze_estimator = GazeEstimator(model_name=args.model)
 
     if calibration_method == "9p":
         run_9_point_calibration(gaze_estimator, camera_index=camera_index)
