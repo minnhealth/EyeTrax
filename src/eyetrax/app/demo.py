@@ -1,9 +1,7 @@
 import time
 import cv2
 import numpy as np
-import argparse
 import os
-
 from eyetrax.utils.screen import get_screen_size
 from eyetrax.gaze import GazeEstimator
 from eyetrax.calibration import (
@@ -18,21 +16,12 @@ from eyetrax.filters import (
     KDESmoother,
     NoSmoother,
 )
+from eyetrax.cli import parse_common_args
 
 
 def run_demo():
-    parser = argparse.ArgumentParser(
-        description="Gaze Estimation with Kalman Filter or KDE"
-    )
-    parser.add_argument("--filter", choices=["kalman", "kde", "none"], default="none")
-    parser.add_argument("--camera", type=int, default=0)
-    parser.add_argument(
-        "--calibration", choices=["9p", "5p", "lissajous"], default="9p"
-    )
-    parser.add_argument("--background", type=str, default=None)
-    parser.add_argument("--confidence", type=float, default=0.5, help="0 < value < 1")
-    parser.add_argument("--model", default="ridge", help="Registered model to use")
-    args = parser.parse_args()
+
+    args = parse_common_args()
 
     filter_method = args.filter
     camera_index = args.camera

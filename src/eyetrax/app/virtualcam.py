@@ -3,7 +3,6 @@ import time
 import cv2
 import numpy as np
 import pyvirtualcam
-
 from eyetrax.utils.screen import get_screen_size
 from eyetrax.gaze import GazeEstimator
 from eyetrax.calibration import (
@@ -18,17 +17,12 @@ from eyetrax.filters import (
     KDESmoother,
     NoSmoother,
 )
+from eyetrax.cli import parse_common_args
 
 
 def run_virtualcam():
-    parser = argparse.ArgumentParser(description="Virtual Camera Gaze Overlay")
-    parser.add_argument("--filter", choices=["kalman", "kde", "none"], default="none")
-    parser.add_argument("--camera", type=int, default=0)
-    parser.add_argument(
-        "--calibration", choices=["9p", "5p", "lissajous"], default="9p"
-    )
-    parser.add_argument("--confidence", type=float, default=0.5)
-    args = parser.parse_args()
+
+    args = parse_common_args()
 
     filter_method = args.filter
     camera_index = args.camera
@@ -36,6 +30,7 @@ def run_virtualcam():
     confidence_level = args.confidence
 
     gaze_estimator = GazeEstimator()
+
     if calibration_method == "9p":
         run_9_point_calibration(gaze_estimator, camera_index=camera_index)
     elif calibration_method == "5p":
