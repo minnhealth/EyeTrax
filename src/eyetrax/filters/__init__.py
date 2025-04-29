@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import cv2
 import numpy as np
 
@@ -16,14 +15,11 @@ def make_kalman(
     Factory returning a cv2.KalmanFilter
     """
     kf = cv2.KalmanFilter(state_dim, meas_dim)
+
     kf.transitionMatrix = np.array(
-        [[1, 0, dt, 0], [0, 1, 0, dt], [0, 0, 1, 0], [0, 0, 0, 1]],
-        np.float32,
+        [[1, 0, dt, 0], [0, 1, 0, dt], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float32
     )
-    kf.measurementMatrix = np.array(
-        [[1, 0, 0, 0], [0, 1, 0, 0]],
-        np.float32,
-    )
+    kf.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], dtype=np.float32)
     kf.processNoiseCov = np.eye(state_dim, dtype=np.float32) * process_var
     kf.measurementNoiseCov = np.eye(meas_dim, dtype=np.float32) * measurement_var
     kf.errorCovPost = np.eye(state_dim, dtype=np.float32)
@@ -37,3 +33,17 @@ def make_kalman(
         kf.statePost[:] = init_state
 
     return kf
+
+
+from .base import BaseSmoother
+from .kalman import KalmanSmoother
+from .kde import KDESmoother
+from .noop import NoSmoother
+
+__all__ = [
+    "make_kalman",
+    "BaseSmoother",
+    "KalmanSmoother",
+    "KDESmoother",
+    "NoSmoother",
+]

@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import argparse
 import os
-from scipy.stats import gaussian_kde
 
 from eyetrax.utils.screen import get_screen_size
 from eyetrax.gaze import GazeEstimator
@@ -13,7 +12,12 @@ from eyetrax.calibration import (
     run_lissajous_calibration,
     fine_tune_kalman_filter,
 )
-from eyetrax.filters import make_kalman
+from eyetrax.filters import (
+    make_kalman,
+    KalmanSmoother,
+    KDESmoother,
+    NoSmoother,
+)
 
 
 def run_demo():
@@ -45,13 +49,19 @@ def run_demo():
     else:
         run_lissajous_calibration(gaze_estimator, camera_index=camera_index)
 
+    screen_width, screen_height = get_screen_size()
+
     if filter_method == "kalman":
         kalman = make_kalman()
         fine_tune_kalman_filter(gaze_estimator, kalman, camera_index=camera_index)
+        smoother = KalmanSmoother(kalman)
+    elif filter_method == "kde":
+        kalman = None
+        smoother = KDESmoother(screen_width, screen_height, confidence=confidence_level)
     else:
         kalman = None
+        smoother = NoSmoother()
 
-    screen_width, screen_height = get_screen_size()
     cam_width, cam_height = 320, 240
     BORDER = 2
     MARGIN = 20
@@ -71,10 +81,6 @@ def run_demo():
     cap = cv2.VideoCapture(camera_index)
     prev_time = time.time()
 
-    if filter_method == "kde":
-        gaze_history = []
-        time_window = 0.5
-
     cursor_alpha = 0.0
     cursor_step = 0.05
 
@@ -88,52 +94,8 @@ def run_demo():
             gaze_point = gaze_estimator.predict(np.array([features]))[0]
             x, y = map(int, gaze_point)
 
-            if kalman:
-                prediction = kalman.predict()
-                x_pred, y_pred = map(int, prediction[:2, 0])
-                x_pred = max(0, min(x_pred, screen_width - 1))
-                y_pred = max(0, min(y_pred, screen_height - 1))
-                measurement = np.array([[np.float32(x)], [np.float32(y)]])
-                if not np.any(kalman.statePre):
-                    kalman.statePre[:2] = measurement
-                    kalman.statePost[:2] = measurement
-                kalman.correct(measurement)
-            elif filter_method == "kde":
-                now = time.time()
-                gaze_history.append((now, x, y))
-                gaze_history = [
-                    (t, gx, gy)
-                    for (t, gx, gy) in gaze_history
-                    if now - t <= time_window
-                ]
-                if len(gaze_history) > 1:
-                    arr = np.array([(gx, gy) for (_, gx, gy) in gaze_history])
-                    try:
-                        kde = gaussian_kde(arr.T)
-                        xi, yi = np.mgrid[0:screen_width:320j, 0:screen_height:200j]
-                        zi = (
-                            kde(np.vstack([xi.ravel(), yi.ravel()])).reshape(xi.shape).T
-                        )
-                        flat = zi.ravel()
-                        idx = np.argsort(flat)[::-1]
-                        cdf = np.cumsum(flat[idx]) / flat.sum()
-                        threshold = flat[idx[np.searchsorted(cdf, confidence_level)]]
-                        mask = (zi >= threshold).astype(np.uint8)
-                        mask = cv2.resize(mask, (screen_width, screen_height))
-                        contours, _ = cv2.findContours(
-                            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                        )
-                        x_pred = int(np.mean(arr[:, 0]))
-                        y_pred = int(np.mean(arr[:, 1]))
-                    except np.linalg.LinAlgError:
-                        x_pred, y_pred = x, y
-                        contours = []
-                else:
-                    x_pred, y_pred = x, y
-                    contours = []
-            else:
-                x_pred, y_pred = x, y
-                contours = []
+            x_pred, y_pred = smoother.step(x, y)
+            contours = smoother.debug.get("contours", [])
 
             cursor_alpha = min(cursor_alpha + cursor_step, 1.0)
         else:
