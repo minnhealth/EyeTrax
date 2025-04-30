@@ -2,7 +2,11 @@ import cv2
 import numpy as np
 
 from eyetrax.utils.screen import get_screen_size
-from eyetrax.calibration.common import wait_for_face_and_countdown, _pulse_and_capture
+from eyetrax.calibration.common import (
+    wait_for_face_and_countdown,
+    _pulse_and_capture,
+    compute_grid_points,
+)
 
 
 def run_5_point_calibration(gaze_estimator, camera_index: int = 0):
@@ -17,10 +21,8 @@ def run_5_point_calibration(gaze_estimator, camera_index: int = 0):
         cv2.destroyAllWindows()
         return
 
-    mx, my = int(sw * 0.1), int(sh * 0.1)
-    gw, gh = sw - 2 * mx, sh - 2 * my
     order = [(1, 1), (0, 0), (2, 0), (0, 2), (2, 2)]
-    pts = [(mx + int(c * (gw / 2)), my + int(r * (gh / 2))) for (r, c) in order]
+    pts = compute_grid_points(order, sw, sh)
 
     res = _pulse_and_capture(gaze_estimator, cap, pts, sw, sh)
     cap.release()

@@ -3,9 +3,28 @@ import cv2
 import numpy as np
 
 
+def compute_grid_points(order, sw: int, sh: int, margin_ratio: float = 0.10):
+    """
+    Translate grid (row, col) indices into absolute pixel locations
+    """
+    if not order:
+        return []
+
+    max_r = max(r for r, _ in order)
+    max_c = max(c for _, c in order)
+
+    mx, my = int(sw * margin_ratio), int(sh * margin_ratio)
+    gw, gh = sw - 2 * mx, sh - 2 * my
+
+    step_x = 0 if max_c == 0 else gw / max_c
+    step_y = 0 if max_r == 0 else gh / max_r
+
+    return [(mx + int(c * step_x), my + int(r * step_y)) for r, c in order]
+
+
 def wait_for_face_and_countdown(cap, gaze_estimator, sw, sh, dur: int = 2) -> bool:
     """
-    Waits for a face to be detected (not blinking), then shows a countdown ellipse.
+    Waits for a face to be detected (not blinking), then shows a countdown ellipse
     """
     cv2.namedWindow("Calibration", cv2.WND_PROP_FULLSCREEN)
     cv2.setWindowProperty("Calibration", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -66,7 +85,7 @@ def _pulse_and_capture(
     cd_d: float = 1.0,
 ):
     """
-    Shared pulse-and-capture loop for each calibration point.
+    Shared pulse-and-capture loop for each calibration point
     """
     feats, targs = [], []
 
