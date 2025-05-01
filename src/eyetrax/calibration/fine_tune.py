@@ -1,4 +1,5 @@
 import time
+
 import cv2
 import numpy as np
 
@@ -7,7 +8,7 @@ from eyetrax.utils.screen import get_screen_size
 
 def fine_tune_kalman_filter(gaze_estimator, kalman, camera_index: int = 0):
     """
-    Quick fine‑tuning pass to adjust Kalman filter's measurementNoiseCov.
+    Quick fine‑tuning pass to adjust Kalman filter's measurementNoiseCov
     """
     screen_width, screen_height = get_screen_size()
 

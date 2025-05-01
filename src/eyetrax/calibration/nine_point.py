@@ -1,12 +1,12 @@
 import cv2
 import numpy as np
 
-from eyetrax.utils.screen import get_screen_size
 from eyetrax.calibration.common import (
-    wait_for_face_and_countdown,
     _pulse_and_capture,
     compute_grid_points,
+    wait_for_face_and_countdown,
 )
+from eyetrax.utils.screen import get_screen_size
 
 
 def run_9_point_calibration(gaze_estimator, camera_index: int = 0):

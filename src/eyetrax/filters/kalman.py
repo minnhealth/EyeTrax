@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 from typing import Tuple
+
 import numpy as np
 
-from .base import BaseSmoother
 from . import make_kalman
+from .base import BaseSmoother
 
 
 class KalmanSmoother(BaseSmoother):

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sklearn.linear_model import Ridge
 
-from .base import BaseModel
 from . import register_model
+from .base import BaseModel
 
 
 class RidgeModel(BaseModel):

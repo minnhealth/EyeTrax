@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import cv2
-import mediapipe as mp
-import numpy as np
 from collections import deque
 from pathlib import Path
 
-from eyetrax.models import create_model, BaseModel
-from eyetrax.constants import (
-    LEFT_EYE_INDICES,
-    RIGHT_EYE_INDICES,
-    MUTUAL_INDICES,
-)
+import cv2
+import mediapipe as mp
+import numpy as np
+
+from eyetrax.constants import LEFT_EYE_INDICES, MUTUAL_INDICES, RIGHT_EYE_INDICES
+from eyetrax.models import BaseModel, create_model
 
 
 class GazeEstimator:

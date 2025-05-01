@@ -1,8 +1,8 @@
-from .common import wait_for_face_and_countdown, compute_grid_points
-from .nine_point import run_9_point_calibration
+from .common import compute_grid_points, wait_for_face_and_countdown
+from .fine_tune import fine_tune_kalman_filter
 from .five_point import run_5_point_calibration
 from .lissajous import run_lissajous_calibration
-from .fine_tune import fine_tune_kalman_filter
+from .nine_point import run_9_point_calibration
 
 __all__ = [
     "wait_for_face_and_countdown",

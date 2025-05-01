@@ -1,6 +1,5 @@
 from importlib import import_module
 from pathlib import Path
-from types import ModuleType
 from typing import Dict, Type
 
 from .base import BaseModel

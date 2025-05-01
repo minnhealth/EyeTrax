@@ -1,23 +1,20 @@
+import os
 import time
+
 import cv2
 import numpy as np
-import os
-from eyetrax.utils.screen import get_screen_size
-from eyetrax.utils.video import camera, fullscreen, iter_frames
-from eyetrax.gaze import GazeEstimator
+
 from eyetrax.calibration import (
-    run_9_point_calibration,
-    run_5_point_calibration,
-    run_lissajous_calibration,
     fine_tune_kalman_filter,
-)
-from eyetrax.filters import (
-    make_kalman,
-    KalmanSmoother,
-    KDESmoother,
-    NoSmoother,
+    run_5_point_calibration,
+    run_9_point_calibration,
+    run_lissajous_calibration,
 )
 from eyetrax.cli import parse_common_args
+from eyetrax.filters import KalmanSmoother, KDESmoother, NoSmoother, make_kalman
+from eyetrax.gaze import GazeEstimator
+from eyetrax.utils.screen import get_screen_size
+from eyetrax.utils.video import camera, fullscreen, iter_frames
 
 
 def run_demo():

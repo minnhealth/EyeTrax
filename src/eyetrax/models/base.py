@@ -1,8 +1,10 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
+
 import pickle
-import numpy as np
+from abc import ABC, abstractmethod
 from pathlib import Path
+
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 
