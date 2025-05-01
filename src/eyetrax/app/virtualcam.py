@@ -1,9 +1,9 @@
-import argparse
-import time
 import cv2
 import numpy as np
 import pyvirtualcam
+
 from eyetrax.utils.screen import get_screen_size
+from eyetrax.utils.video import camera, iter_frames
 from eyetrax.gaze import GazeEstimator
 from eyetrax.calibration import (
     run_9_point_calibration,
@@ -51,53 +51,38 @@ def run_virtualcam():
         kalman = None
         smoother = NoSmoother()
 
-    cap = cv2.VideoCapture(camera_index)
-    if not cap.isOpened():
-        print("Error: cannot open camera.")
-        return
-
-    cam_fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
-
     green_bg = np.zeros((screen_height, screen_width, 3), dtype=np.uint8)
     green_bg[:] = (0, 255, 0)
 
-    with pyvirtualcam.Camera(
-        width=screen_width,
-        height=screen_height,
-        fps=cam_fps,
-        fmt=pyvirtualcam.PixelFormat.BGR,
-    ) as cam:
-        print(f"Virtual camera started: {cam.device}")
+    with camera(camera_index) as cap:
+        cam_fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
+        with pyvirtualcam.Camera(
+            width=screen_width,
+            height=screen_height,
+            fps=cam_fps,
+            fmt=pyvirtualcam.PixelFormat.BGR,
+        ) as cam:
+            print(f"Virtual camera started: {cam.device}")
+            for frame in iter_frames(cap):
+                features, blink_detected = gaze_estimator.extract_features(frame)
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                continue
+                if features is not None and not blink_detected:
+                    gaze_point = gaze_estimator.predict(np.array([features]))[0]
+                    x, y = map(int, gaze_point)
+                    x_pred, y_pred = smoother.step(x, y)
+                    contours = smoother.debug.get("contours", [])
+                else:
+                    x_pred = y_pred = None
+                    contours = []
 
-            features, blink_detected = gaze_estimator.extract_features(frame)
+                output = green_bg.copy()
+                if contours:
+                    cv2.drawContours(output, contours, -1, (0, 0, 255), 3)
+                if x_pred is not None and y_pred is not None:
+                    cv2.circle(output, (x_pred, y_pred), 10, (0, 0, 255), -1)
 
-            if features is not None and not blink_detected:
-                gaze_point = gaze_estimator.predict(np.array([features]))[0]
-                x, y = map(int, gaze_point)
-                x_pred, y_pred = smoother.step(x, y)
-                contours = smoother.debug.get("contours", [])
-            else:
-                x_pred = y_pred = None
-                contours = []
-
-            output = green_bg.copy()
-
-            if contours:
-                cv2.drawContours(output, contours, -1, (0, 0, 255), 3)
-
-            if x_pred is not None and y_pred is not None:
-                cv2.circle(output, (x_pred, y_pred), 10, (0, 0, 255), -1)
-
-            cam.send(output)
-            cam.sleep_until_next_frame()
-
-    cap.release()
-    cv2.destroyAllWindows()
+                cam.send(output)
+                cam.sleep_until_next_frame()
 
 
 if __name__ == "__main__":
