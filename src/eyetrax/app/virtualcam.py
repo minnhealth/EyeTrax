@@ -10,6 +10,7 @@ from eyetrax.calibration import (
 from eyetrax.cli import parse_common_args
 from eyetrax.filters import KalmanSmoother, KDESmoother, NoSmoother, make_kalman
 from eyetrax.gaze import GazeEstimator
+from eyetrax.utils.draw import draw_cursor
 from eyetrax.utils.screen import get_screen_size
 from eyetrax.utils.video import camera, iter_frames
 
@@ -73,7 +74,15 @@ def run_virtualcam():
                 if contours:
                     cv2.drawContours(output, contours, -1, (0, 0, 255), 3)
                 if x_pred is not None and y_pred is not None:
-                    cv2.circle(output, (x_pred, y_pred), 10, (0, 0, 255), -1)
+                    draw_cursor(
+                        output,
+                        x_pred,
+                        y_pred,
+                        alpha=1.0,
+                        radius_outer=10,
+                        radius_inner=0,
+                        color_outer=(0, 0, 255),
+                    )
 
                 cam.send(output)
                 cam.sleep_until_next_frame()

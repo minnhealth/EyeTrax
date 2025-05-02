@@ -12,6 +12,7 @@ from eyetrax.calibration import (
 from eyetrax.cli import parse_common_args
 from eyetrax.filters import KalmanSmoother, KDESmoother, NoSmoother, make_kalman
 from eyetrax.gaze import GazeEstimator
+from eyetrax.utils.draw import draw_cursor, make_thumbnail
 from eyetrax.utils.screen import get_screen_size
 from eyetrax.utils.video import camera, fullscreen, iter_frames
 
@@ -85,28 +86,9 @@ def run_demo():
                 cv2.drawContours(canvas, contours, -1, (15, 182, 242), 5)
 
             if x_pred is not None and y_pred is not None and cursor_alpha > 0:
-                overlay = canvas.copy()
-                cv2.circle(overlay, (x_pred, y_pred), 30, (0, 0, 255), -1)
-                cv2.circle(overlay, (x_pred, y_pred), 25, (255, 255, 255), -1)
-                cv2.addWeighted(
-                    overlay,
-                    cursor_alpha * 0.6,
-                    canvas,
-                    1 - cursor_alpha * 0.6,
-                    0,
-                    canvas,
-                )
+                draw_cursor(canvas, x_pred, y_pred, cursor_alpha)
 
-            small = cv2.resize(frame, (cam_width, cam_height))
-            thumb = cv2.copyMakeBorder(
-                small,
-                BORDER,
-                BORDER,
-                BORDER,
-                BORDER,
-                cv2.BORDER_CONSTANT,
-                value=(255, 255, 255),
-            )
+            thumb = make_thumbnail(frame, size=(cam_width, cam_height), border=BORDER)
             h, w = thumb.shape[:2]
             canvas[-h - MARGIN : -MARGIN, -w - MARGIN : -MARGIN] = thumb
 
