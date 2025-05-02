@@ -3,7 +3,6 @@ import numpy as np
 import pyvirtualcam
 
 from eyetrax.calibration import (
-    fine_tune_kalman_filter,
     run_5_point_calibration,
     run_9_point_calibration,
     run_lissajous_calibration,
@@ -37,8 +36,8 @@ def run_virtualcam():
 
     if filter_method == "kalman":
         kalman = make_kalman()
-        fine_tune_kalman_filter(gaze_estimator, kalman, camera_index=camera_index)
         smoother = KalmanSmoother(kalman)
+        smoother.tune(gaze_estimator, camera_index=camera_index)
     elif filter_method == "kde":
         kalman = None
         smoother = KDESmoother(screen_width, screen_height, confidence=confidence_level)

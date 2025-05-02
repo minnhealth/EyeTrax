@@ -6,7 +6,6 @@ _lazy_map = {
     "run_9_point_calibration": ("eyetrax.calibration", "run_9_point_calibration"),
     "run_5_point_calibration": ("eyetrax.calibration", "run_5_point_calibration"),
     "run_lissajous_calibration": ("eyetrax.calibration", "run_lissajous_calibration"),
-    "fine_tune_kalman_filter": ("eyetrax.calibration", "fine_tune_kalman_filter"),
 }
 
 
