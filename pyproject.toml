@@ -31,8 +31,9 @@ classifiers = [
 homepage = "https://github.com/ck-zhang/eyetrax"
 
 [project.scripts]
-eyetrax-demo       = "eyetrax.app.demo:run_demo"
-eyetrax-virtualcam = "eyetrax.app.virtualcam:run_virtualcam"
+eyetrax-demo        = "eyetrax.app.demo:run_demo"
+eyetrax-virtualcam  = "eyetrax.app.virtualcam:run_virtualcam"
+eyetrax-build-model = "eyetrax.app.build_model:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/eyetrax"]

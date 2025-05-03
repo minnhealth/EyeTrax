@@ -18,7 +18,6 @@ from eyetrax.utils.video import camera, fullscreen, iter_frames
 
 
 def run_demo():
-
     args = parse_common_args()
 
     filter_method = args.filter
@@ -29,12 +28,16 @@ def run_demo():
 
     gaze_estimator = GazeEstimator(model_name=args.model)
 
-    if calibration_method == "9p":
-        run_9_point_calibration(gaze_estimator, camera_index=camera_index)
-    elif calibration_method == "5p":
-        run_5_point_calibration(gaze_estimator, camera_index=camera_index)
+    if args.model_file and os.path.isfile(args.model_file):
+        gaze_estimator.load_model(args.model_file)
+        print(f"[demo] Loaded gaze model from {args.model_file}")
     else:
-        run_lissajous_calibration(gaze_estimator, camera_index=camera_index)
+        if calibration_method == "9p":
+            run_9_point_calibration(gaze_estimator, camera_index=camera_index)
+        elif calibration_method == "5p":
+            run_5_point_calibration(gaze_estimator, camera_index=camera_index)
+        else:
+            run_lissajous_calibration(gaze_estimator, camera_index=camera_index)
 
     screen_width, screen_height = get_screen_size()
 

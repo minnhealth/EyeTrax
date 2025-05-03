@@ -40,5 +40,11 @@ def parse_common_args():
         default="ridge",
         help="The machine learning model to use for gaze estimation, default is 'ridge'",
     )
+    parser.add_argument(
+        "--model-file",
+        type=str,
+        default=None,
+        help="Path to a previously-trained gaze model",
+    )
 
     return parser.parse_args()
