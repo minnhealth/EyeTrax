@@ -168,7 +168,6 @@ def _pulse_and_capture_multi_eye(cap, pts, sw:int, sh:int, gaze_estimator, pulse
     """
     Multi-eye pulse-and-capture loop: returns (feats_l, feats_r, targets).
     """
-    print("PCC")
     feats_l, feats_r, targs = [], [], []
     for x,y in pts:
         # pulse animation (same as single-eye) ...
