@@ -2,8 +2,10 @@ from ._version import __version__
 
 _lazy_map = {
     "GazeEstimator": ("eyetrax.gaze", "GazeEstimator"),
+    "GazeEstimatorMultiEye": ("eyetrax.gaze", "GazeEstimatorMultiEye"),
     "make_kalman": ("eyetrax.filters", "make_kalman"),
     "run_9_point_calibration": ("eyetrax.calibration", "run_9_point_calibration"),
+    "run_9_point_calibration_multi_eye": ("eyetrax.calibration", "run_9_point_calibration_multi_eye"),
     "run_5_point_calibration": ("eyetrax.calibration", "run_5_point_calibration"),
     "run_lissajous_calibration": ("eyetrax.calibration", "run_lissajous_calibration"),
 }
