@@ -253,12 +253,12 @@ class GazeEstimatorMultiEye:
         """Predict right-eye gaze points."""
         return self.model_right.predict(X)
 
-    def save_model(self, path: str | Path) -> None:
+    def save_model(self, left_path: str | Path, right_path: str | Path) -> None:
         """Persist both regressors."""
-        self.model_left.save(str(path) + '_left')
-        self.model_right.save(str(path) + '_right')
+        self.model_left.save(str(left_path))
+        self.model_right.save(str(right_path))
 
-    def load_model(self, path: str | Path) -> None:
+    def load_model(self, left_path: str | Path, right_path: str | Path) -> None:
         """Load both regressors."""
-        self.model_left = BaseModel.load(str(path) + '_left')
-        self.model_right = BaseModel.load(str(path) + '_right')
+        self.model_left = BaseModel.load(str(left_path))
+        self.model_right = BaseModel.load(str(right_path))
